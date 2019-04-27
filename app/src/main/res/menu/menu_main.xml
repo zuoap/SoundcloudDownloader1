@@ -1,33 +1,39 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <item android:id="@+id/menu_item_share"
-        android:title="@string/share"
-        android:icon="@android:drawable/ic_menu_share"
-        app:showAsAction="ifRoom"
-        android:actionProviderClass="android.widget.ShareActionProvider" />
+    <!--<item android:id="@+id/menu_item_share"-->
+        <!--android:title="@string/share"-->
+        <!--android:icon="@android:drawable/ic_menu_share"-->
+        <!--app:showAsAction="ifRoom"-->
+        <!--android:actionProviderClass="android.widget.ShareActionProvider" />-->
+
+    <!--<item-->
+        <!--android:id="@+id/empty"-->
+        <!--android:title="@string/options"-->
+        <!--android:orderInCategory="101"-->
+        <!--app:showAsAction="always"-->
+        <!--android:icon="@drawable/baseline_more_vert_black">-->
+
+        <!--<menu>-->
+
+            <!--<item android:id="@+id/action_settings"-->
+                <!--android:icon="@android:drawable/ic_menu_preferences"-->
+                <!--app:showAsAction="ifRoom"-->
+                <!--android:title="@string/settings" />-->
+
+            <!--<item android:id="@+id/action_help"-->
+                <!--android:icon="@android:drawable/ic_menu_help"-->
+                <!--app:showAsAction="ifRoom"-->
+                <!--android:title="@string/help" />-->
+
+        <!--</menu>-->
+
+    <!--</item>-->
 
     <item
-        android:id="@+id/empty"
-        android:title="@string/options"
-        android:orderInCategory="101"
-        app:showAsAction="always"
-        android:icon="@drawable/baseline_more_vert_black">
-
-        <menu>
-
-            <item android:id="@+id/action_settings"
-                android:icon="@android:drawable/ic_menu_preferences"
-                app:showAsAction="ifRoom"
-                android:title="@string/settings" />
-
-            <item android:id="@+id/action_help"
-                android:icon="@android:drawable/ic_menu_help"
-                app:showAsAction="ifRoom"
-                android:title="@string/help" />
-
-        </menu>
-
-    </item>
+        android:id="@+id/settings"
+        android:title="Setting"
+        android:icon="@android:drawable/ic_menu_preferences"
+        app:showAsAction="always"/>
 
 </menu>

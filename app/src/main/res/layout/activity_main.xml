@@ -67,7 +67,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:scaleType="fitCenter"
-        app:srcCompat="@drawable/SoundCloud-Downloader-Pro-icon" />
+        app:srcCompat="@drawable/sound_cloud_downloader_pro_icon" />
 
 
 </android.support.constraint.ConstraintLayout>
