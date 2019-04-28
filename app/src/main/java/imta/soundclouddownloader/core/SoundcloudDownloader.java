@@ -1,5 +1,10 @@
 package imta.soundclouddownloader.core;
 
+import android.app.DownloadManager;
+import android.net.Uri;
+import android.os.Environment;
+import android.support.v4.provider.DocumentFile;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -14,6 +19,14 @@ import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+
+import imta.soundclouddownloader.MainActivity;
 
 
 public class SoundcloudDownloader {
@@ -33,34 +46,23 @@ public class SoundcloudDownloader {
     public static String DOWNLOAD_DIR = "";
 
 
-    public static List<TrackInfo> getInfo(String inputUrl) {
-        try {
-            if (isPlaylist(inputUrl)) {
-                return getPlaylistInfo(inputUrl);
-            } else {
-                return Collections.singletonList(getTrackInfo(inputUrl));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+    public static List<TrackInfo> getInfo(String inputUrl) throws Exception {
+        if (isPlaylist(inputUrl)) {
+            return getPlaylistInfo(inputUrl);
+        } else {
+            return Collections.singletonList(getTrackInfo(inputUrl));
         }
     }
 
-    public static boolean download(List<TrackInfo> trackInfoList) {
-        try {
-            for (TrackInfo trackInfo : trackInfoList) {
-                downloadTrack(trackInfo);
-            }
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+    public static void download(List<TrackInfo> trackInfoList) throws IOException {
+        for (TrackInfo trackInfo : trackInfoList) {
+            downloadTrack(trackInfo);
         }
     }
 
     //-----------------------------------------PRIVATE----------------------------------------------
 
-    private static TrackInfo getTrackInfo(String inputUrl) throws IOException {
+    private static TrackInfo getTrackInfo(String inputUrl) throws Exception {
         JsonObject jsonObject = readJsonFromUrl(String.format(RESOLVE_JSON, inputUrl));
 
         return getTrackInfo(jsonObject);
@@ -79,7 +81,7 @@ public class SoundcloudDownloader {
                 .setUsername(username);
     }
 
-    private static List<TrackInfo> getPlaylistInfo(String inputUrl) throws IOException {
+    private static List<TrackInfo> getPlaylistInfo(String inputUrl) throws Exception {
         JsonObject jsonObject = readJsonFromUrl(String.format(RESOLVE_JSON, inputUrl));
 
         JsonArray tracks = jsonObject.getAsJsonArray("tracks");
@@ -92,32 +94,40 @@ public class SoundcloudDownloader {
     }
 
     private static void downloadTrack(TrackInfo trackInfo) throws IOException {
-        ReadableByteChannel readableByteChannel =
-                Channels.newChannel(
-                        new URL(
-                                String.format(STREAM_URL, String.valueOf(trackInfo.getId()))).openStream());
+        String trackName = trackInfo.getUsername() + " — " + trackInfo.getTitle() + ".mp3";
 
-        String path = DOWNLOAD_DIR + File.separator + trackInfo.getUsername() + " — " + trackInfo.getTitle() + ".mp3";
 
-        FileOutputStream fileOutputStream = new FileOutputStream(path);
+        Uri uri = Uri.parse(String.format(STREAM_URL, String.valueOf(trackInfo.getId())));
+        DownloadManager.Request request = new DownloadManager.Request(uri);
+        request.setTitle(trackName);
+        request.setDescription("Downloading");
+        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
 
-        fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_MUSIC, trackName);
+
+        MainActivity.mgr.enqueue(request);
     }
 
 
-    private static JsonObject readJsonFromUrl(String sURL) throws IOException {
-        // Connect to the URL using java's native library
-        URL url = new URL(sURL);
-        URLConnection request = url.openConnection();
-        request.connect();
+    private static JsonObject readJsonFromUrl(final String sURL) throws Exception {
+        FutureTask<JsonObject> futureTask = new FutureTask<>(new Callable<JsonObject>() {
+            @Override
+            public JsonObject call() throws Exception {
+                URL url = new URL(sURL);
+                URLConnection request = url.openConnection();
+                request.connect();
 
-        // Convert to a JSON object to print data
-        JsonParser jp = new JsonParser(); //from gson
-        //Convert the input stream to a json element
-        JsonReader jsonReader = new JsonReader(new InputStreamReader((InputStream) request.getContent()));
-        jsonReader.setLenient(true);
-        JsonElement root = jp.parse(jsonReader);
-        return root.getAsJsonObject();
+                JsonParser jp = new JsonParser();
+                JsonReader jsonReader = new JsonReader(new InputStreamReader((InputStream) request.getContent()));
+                jsonReader.setLenient(true);
+                JsonElement root = jp.parse(jsonReader);
+                return root.getAsJsonObject();
+            }
+        });
+        Thread thread = new Thread(futureTask);
+        thread.setDaemon(true);
+        thread.start();
+        return futureTask.get();
     }
 
     private static boolean isPlaylist(String soundCloudUrl) {

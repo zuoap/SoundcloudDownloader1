@@ -32,7 +32,7 @@
         app:layout_constraintBaseline_toBaselineOf="@+id/url_text"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
-        android:onClick="inputUrlBtn"
+        android:onClick="downloadBtn"
         app:layout_constraintStart_toEndOf="@+id/url_text" />
 
     <Button
