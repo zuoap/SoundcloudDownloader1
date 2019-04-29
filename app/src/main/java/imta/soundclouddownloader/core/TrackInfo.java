@@ -47,11 +47,6 @@ public class TrackInfo {
 
     @Override
     public String toString() {
-        return "TrackInfo{" +
-                "username='" + username + '\'' +
-                ", title='" + title + '\'' +
-                ", url='" + url + '\'' +
-                ", id=" + id +
-                '}';
+        return username + " — " + title;
     }
 }

@@ -2,9 +2,11 @@ package imta.soundclouddownloader;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -24,17 +26,21 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import imta.soundclouddownloader.core.SoundcloudDownloader;
+import imta.soundclouddownloader.core.TrackInfo;
 
 public class MainActivity extends AppCompatActivity {
 
-//    private static final String MY_PREFS_NAME = "DownloadDir";
-    private static final String DIR_PROPERTY = "dir";
     private static final int QR_CODE_REQUEST = 1;
-    private static final int CHANGE_DIR_REQUEST = 2;
     public static DownloadManager mgr;
-    private static final int PERM_STORAGE_REQ = 33;
+    private static final int TOAST_GRAVITY = 20;
+
+    public static final String LINK_REGEX = "(http|ftp|https)://([\\w_-]+(?:(?:\\.[\\w_-]+)+))([\\w.,@?^=%&:/~+#-]*[\\w@?^=%&/~+#-])?";
+    public static final Pattern LINK_PATTERN = Pattern.compile(LINK_REGEX);
 
 
     @Override
@@ -42,29 +48,36 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        SharedPreferences.Editor editor = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE).edit();
-//        editor.putString(DIR_PROPERTY, Environment.DIRECTORY_DOWNLOADS);
-//        editor.apply();
-
         mgr = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
 
         registerReceiver(new BroadcastReceiver() {
                              @Override
                              public void onReceive(Context context, Intent intent) {
                                  Toast toast = Toast.makeText(getApplicationContext(), "Download complete", Toast.LENGTH_LONG);
-                                 toast.setGravity(Gravity.BOTTOM | Gravity.CENTER, 0, -10);
+                                 toast.setGravity(Gravity.BOTTOM | Gravity.CENTER, 0, TOAST_GRAVITY);
                                  toast.show();
                              }
                          },
                 new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
 
-//        registerReceiver(new BroadcastReceiver() {
-//                             @Override
-//                             public void onReceive(Context context, Intent intent) {
-//
-//                             }
-//                         },
-//                new IntentFilter(DownloadManager.ACTION_NOTIFICATION_CLICKED));
+        Intent receivedIntent = getIntent();
+        String receivedAction = receivedIntent.getAction();
+
+        //make sure it's an action and type we can handle
+        if (receivedAction != null && receivedAction.equals(Intent.ACTION_SEND)) {
+            String stringExtra = receivedIntent.getStringExtra(Intent.EXTRA_TEXT);
+            Matcher m = LINK_PATTERN.matcher(stringExtra);
+            if (m.find()) {
+                String link = stringExtra.substring(m.start(), m.end());
+                System.out.println(link);
+                download(link);
+            } else {
+                Toast toast = Toast.makeText(getApplicationContext(), "Text does not contain link!", Toast.LENGTH_LONG);
+                toast.setGravity(Gravity.BOTTOM | Gravity.CENTER, 0, TOAST_GRAVITY);
+                toast.show();
+            }
+        }
+
     }
 
     @Override
@@ -73,33 +86,11 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == QR_CODE_REQUEST) {
             if (resultCode == Activity.RESULT_OK) {
 
-//                SharedPreferences prefs = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE);
-//                String downloadDirectory = prefs.getString(DIR_PROPERTY, null);
-
                 String qrCode = data.getStringExtra("result");
-
-//                Toast toast = Toast.makeText(getApplicationContext(), qrCode, Toast.LENGTH_LONG);
-//                toast.setGravity(Gravity.BOTTOM | Gravity.CENTER, 0, -10);
-//                toast.show();
 
                 download(qrCode);
             }
-        } /*else if (requestCode == CHANGE_DIR_REQUEST) {
-            if (resultCode == RESULT_OK) {
-
-                String directory = data.getData().getPath();
-
-                if (directory != null) {
-                    SharedPreferences.Editor editor = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE).edit();
-                    editor.putString(DIR_PROPERTY, directory);
-                    editor.apply();
-
-                    Toast toast = Toast.makeText(getApplicationContext(), "Download directory was changed", Toast.LENGTH_LONG);
-                    toast.setGravity(Gravity.BOTTOM | Gravity.CENTER, 0, -10);
-                    toast.show();
-                }
-            }
-        }*/
+        }
     }
 
 
@@ -108,20 +99,6 @@ public class MainActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
-
-//    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//        switch (item.getItemId()) {
-//            case R.id.settings_download_path:
-//
-//                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-//                startActivityForResult(intent, CHANGE_DIR_REQUEST);
-//                break;
-//        }
-//        return super.onOptionsItemSelected(item);
-//    }
-
 
     public void scanQrCodeBtn(View view) {
         startActivityForResult(new Intent(MainActivity.this, QrCodeScannerActivity.class), QR_CODE_REQUEST);
@@ -134,27 +111,73 @@ public class MainActivity extends AppCompatActivity {
         download(inputUrl);
     }
 
-    private void download(String inputUrl) {
-//        SharedPreferences prefs = getSharedPreferences(MY_PREFS_NAME, MODE_PRIVATE);
-//        String downloadDirectory = prefs.getString(DIR_PROPERTY, null);
-//
-//        SoundcloudDownloader.DOWNLOAD_DIR = downloadDirectory;
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case 7: {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                        return;
+                    }
+                    download(inputUrl);
+                }
+            }
+            break;
+        }
+    }
 
-//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED &&
-//                ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-//
-//            // this will request for permission when user has not granted permission for the app
-//            ActivityCompat.requestPermissions(this,
-//                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERM_STORAGE_REQ);
-//            return;
-//        }
+    private String inputUrl;
+
+    private void download(String inputUrl) {
+        this.inputUrl = inputUrl;
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+
+            // this will request for permission when user has not granted permission for the app
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 7);
+            return;
+        }
 
         try {
-            SoundcloudDownloader.download(SoundcloudDownloader.getInfo(inputUrl));
+            final List<TrackInfo> info = SoundcloudDownloader.getInfo(inputUrl);
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Download " + (info.size() > 1 ? "these songs?" : "this song?"));
+            StringBuilder sb = new StringBuilder();
+            if (info.size() > 1) {
+                int i = 1;
+                for (TrackInfo trackInfo : info)
+                    sb.append(i++).append(") ").append(trackInfo.toString()).append("\n\n");
+            } else {
+                sb.append(info.get(0).toString());
+            }
+            builder.setMessage(sb.toString());
+            builder.setCancelable(true);
+            builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    try {
+                        SoundcloudDownloader.download(info);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast toast = Toast.makeText(getApplicationContext(), "Wrong input url!", Toast.LENGTH_LONG);
+                        toast.setGravity(Gravity.BOTTOM | Gravity.CENTER, 0, TOAST_GRAVITY);
+                        toast.show();
+                    }
+                }
+            });
+
+            builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                }
+            });
+
+            builder.show();
         } catch (Exception e) {
             e.printStackTrace();
             Toast toast = Toast.makeText(getApplicationContext(), "Wrong input url!", Toast.LENGTH_LONG);
-            toast.setGravity(Gravity.BOTTOM | Gravity.CENTER, 0, -10);
+            toast.setGravity(Gravity.BOTTOM | Gravity.CENTER, 0, TOAST_GRAVITY);
             toast.show();
         }
     }

@@ -96,7 +96,6 @@ public class SoundcloudDownloader {
     private static void downloadTrack(TrackInfo trackInfo) throws IOException {
         String trackName = trackInfo.getUsername() + " — " + trackInfo.getTitle() + ".mp3";
 
-
         Uri uri = Uri.parse(String.format(STREAM_URL, String.valueOf(trackInfo.getId())));
         DownloadManager.Request request = new DownloadManager.Request(uri);
         request.setTitle(trackName);
@@ -131,7 +130,8 @@ public class SoundcloudDownloader {
     }
 
     private static boolean isPlaylist(String soundCloudUrl) {
-        return /*!soundCloudUrl.contains("?") &&*/ soundCloudUrl.matches(SOUND_CLOUD_PLAYLIST_REGEX);
+//        return /*!soundCloudUrl.contains("?") &&*/ soundCloudUrl.matches(SOUND_CLOUD_PLAYLIST_REGEX);
+        return soundCloudUrl.contains("/sets/");
     }
 
 }
